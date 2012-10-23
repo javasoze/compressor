@@ -1,0 +1,4 @@
+compressor
+==========
+
+Fast compression library
