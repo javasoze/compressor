@@ -123,7 +123,7 @@ public class CompressedIdSet extends IdSet {
   private final long[] currentSeg;
   private int currentCount;
   private final LinkedList<ValSeg> segList = new LinkedList<ValSeg>();
-  private int size;
+  private int size = 0;
 
   public CompressedIdSet(int blockSize) {
     currentSeg = new long[blockSize];
@@ -141,7 +141,6 @@ public class CompressedIdSet extends IdSet {
   void init() {
     currentCount = 0;
     maxDelta = -1;
-    size = 0;
   }
 
   @Override

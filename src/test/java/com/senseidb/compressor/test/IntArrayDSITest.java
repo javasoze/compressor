@@ -92,7 +92,7 @@ public class IntArrayDSITest {
 
   @Test
   public void testIdSet() throws Exception {
-    int num = 100000;
+    int num = 10;
     int maxVal = 100000;
     // LongSet data = new LongOpenHashSet();
     long[] longarr = new long[num];
@@ -111,7 +111,7 @@ public class IntArrayDSITest {
     compare(longarr, longSet);
     Arrays.sort(longarr);
 
-    CompressedIdSet cset = new CompressedIdSet(256);
+    CompressedIdSet cset = new CompressedIdSet(3);
     for (long val : longarr) {
       cset.addID(val);
     }
