@@ -1,11 +1,13 @@
 package com.senseidb.compressor.test;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
 
 import junit.framework.TestCase;
 
+import org.apache.lucene.search.DocIdSet;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.util.packed.CompressedIdSet;
 import org.junit.Test;

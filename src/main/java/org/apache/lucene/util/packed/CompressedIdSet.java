@@ -1,5 +1,6 @@
 package org.apache.lucene.util.packed;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
