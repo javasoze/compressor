@@ -1,13 +1,13 @@
 package com.senseidb.compressor.test;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
 
 import junit.framework.TestCase;
 
-import org.apache.lucene.search.DocIdSet;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.util.packed.CompressedIdSet;
 import org.junit.Test;
@@ -91,12 +91,29 @@ public class IntArrayDSITest {
     }
     TestCase.assertEquals(expected.length, i);
   }
+  
+  static LongArrayIdSet pipeWithBytes(LongArrayIdSet idset) throws IOException{
+    ByteArrayOutputStream bout = new ByteArrayOutputStream();
+    LongArrayIdSet.serialize(idset, bout);
+    bout.flush();
+    byte[] bytes = bout.toByteArray();
+    
+    return LongArrayIdSet.deserialize(new ByteArrayInputStream(bytes));
+  }
+  
+  static CompressedIdSet pipeWithBytes(CompressedIdSet idset) throws IOException{
+    ByteArrayOutputStream bout = new ByteArrayOutputStream();
+    CompressedIdSet.serialize(idset, bout);
+    bout.flush();
+    byte[] bytes = bout.toByteArray();
+    
+    return CompressedIdSet.deserialize(new ByteArrayInputStream(bytes));
+  }
 
   @Test
   public void testIdSet() throws Exception {
     int num = 10;
     int maxVal = 100000;
-    // LongSet data = new LongOpenHashSet();
     long[] longarr = new long[num];
     Random rand = new Random();
     for (int i = 0; i < num; ++i) {
@@ -109,6 +126,8 @@ public class IntArrayDSITest {
     for (long val : longarr) {
       longSet.addID(val);
     }
+    
+    longSet = pipeWithBytes(longSet);
 
     compare(longarr, longSet);
     Arrays.sort(longarr);
@@ -117,6 +136,8 @@ public class IntArrayDSITest {
     for (long val : longarr) {
       cset.addID(val);
     }
+    
+    cset  = pipeWithBytes(cset);
 
     compare(longarr, cset);
   }

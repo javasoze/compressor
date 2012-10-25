@@ -1,5 +1,11 @@
 package com.senseidb.compressor.idset;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+
 public class LongArrayIdSet extends IdSet {
 
   private static class LongArrayIdIterator implements LongRandomAccessIterator {
@@ -60,5 +66,25 @@ public class LongArrayIdSet extends IdSet {
   @Override
   public LongRandomAccessIterator iterator() {
     return new LongArrayIdIterator(vals, currentIdx);
+  }
+  
+  public static void serialize(LongArrayIdSet idset,OutputStream o) throws IOException{
+    DataOutputStream out = new DataOutputStream(o);
+    out.writeInt(idset.vals.length);
+    for (int i=0;i<idset.vals.length;++i){
+      out.writeLong(idset.vals[i]);
+    }
+    out.writeInt(idset.currentIdx);
+  }
+  
+  public static LongArrayIdSet deserialize(InputStream input) throws IOException{
+    DataInputStream in = new DataInputStream(input);
+    int count = in.readInt();
+    LongArrayIdSet idSet = new LongArrayIdSet(count);
+    for (int i=0;i<count;++i){
+      idSet.vals[i] = in.readLong();
+    }
+    idSet.currentIdx = in.readInt();
+    return idSet;
   }
 }

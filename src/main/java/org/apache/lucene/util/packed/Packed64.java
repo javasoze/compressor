@@ -50,11 +50,11 @@ class Packed64 extends PackedInts.MutableImpl {
   /**
    * Values are stores contiguously in the blocks array.
    */
-  private final long[] blocks;
+  final long[] blocks;
   /**
    * A right-aligned mask of width BitsPerValue used by {@link #get(int)}.
    */
-  private final long maskRight;
+  final long maskRight;
   /**
    * Optimization: Saves one lookup in {@link #get(int)}.
    */

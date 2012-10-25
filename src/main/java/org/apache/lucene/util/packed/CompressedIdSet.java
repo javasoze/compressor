@@ -1,6 +1,11 @@
 package org.apache.lucene.util.packed;
 
-import java.nio.ByteBuffer;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -21,6 +26,34 @@ public class CompressedIdSet extends IdSet {
 
     public long sizeInBytes() {
       return 8 + 4 + valSet.ramBytesUsed();
+    }
+    
+    public static void serialize(ValSeg idset,DataOutputStream out) throws IOException{
+      out.writeLong(idset.minVal);
+      out.writeInt(idset.valSet.valueCount);
+      out.writeInt(idset.valSet.bitsPerValue);
+      out.writeInt(idset.valSet.blocks.length);
+      for (long val : idset.valSet.blocks){
+        out.writeLong(val);
+      }
+    }
+    
+    public static ValSeg deserialize(DataInputStream in) throws IOException{
+      long minVal = in.readLong();
+      int valCount = in.readInt();
+      int bitsPerVal = in.readInt();
+      int len = in.readInt();
+      long[] blocks = new long[len];
+      
+      for (int i=0;i<len;++i){
+        blocks[i] = in.readLong();
+      }
+      
+      Packed64 valSet = new Packed64(blocks,valCount,bitsPerVal);
+      ValSeg seg = new ValSeg();
+      seg.minVal = minVal;
+      seg.valSet = valSet;
+      return seg;
     }
   }
 
@@ -123,8 +156,47 @@ public class CompressedIdSet extends IdSet {
   private long maxDelta;
   private final long[] currentSeg;
   private int currentCount;
-  private final LinkedList<ValSeg> segList = new LinkedList<ValSeg>();
   private int size = 0;
+  private final LinkedList<ValSeg> segList = new LinkedList<ValSeg>();
+  
+  
+  public static void serialize(CompressedIdSet idset,OutputStream output) throws IOException{
+    DataOutputStream out = new DataOutputStream(output);
+    int blockSize = idset.currentSeg.length;
+    out.writeInt(blockSize);
+    for (int i=0;i<blockSize;++i){
+      out.writeLong(idset.currentSeg[i]);
+    }
+    out.writeLong(idset.maxDelta);
+    out.writeInt(idset.currentCount);
+    out.writeInt(idset.size);
+    out.writeInt(idset.segList.size());
+    for (ValSeg seg : idset.segList){
+      ValSeg.serialize(seg, out);
+    }
+  }
+  
+  public static CompressedIdSet deserialize(InputStream input) throws IOException{
+    DataInputStream in = new DataInputStream(input);
+    int blockSize = in.readInt();
+    
+    CompressedIdSet idSet = new CompressedIdSet(blockSize);
+    long[] currentSeg = idSet.currentSeg;
+    for (int i=0;i<blockSize;++i){
+      currentSeg[i] = in.readLong();
+    }
+    idSet.maxDelta = in.readLong();
+    idSet.currentCount = in.readInt();
+    idSet.size = in.readInt();
+    int segLen = in.readInt();
+
+    for (int i=0;i<segLen;++i){
+      ValSeg seg = ValSeg.deserialize(in);
+      idSet.segList.add(seg);
+    }
+    
+    return idSet;
+  }
 
   public CompressedIdSet(int blockSize) {
     currentSeg = new long[blockSize];
@@ -198,14 +270,20 @@ public class CompressedIdSet extends IdSet {
     e1 = System.currentTimeMillis();
     System.out.println(" uncompressed size: " + set2.sizeInBytes() + ", took: "
         + (e1 - s1));
+    
+    ByteArrayOutputStream bout = new ByteArrayOutputStream();
+    LongArrayIdSet.serialize(set2, bout);
+    byte[] bytes = bout.toByteArray();
+    System.out.println("uncompressed bytearray len: "+bytes.length);
 
     int blockSize = 256;
     long[] data = set2.vals;
     long[] copy = new long[data.length];
     System.arraycopy(data, 0, copy, 0, data.length);
 
-    s1 = System.currentTimeMillis();
     Arrays.sort(copy);
+
+    s1 = System.currentTimeMillis();
     CompressedIdSet set = new CompressedIdSet(blockSize);
     for (long v : copy) {
       set.addID(v);
@@ -213,10 +291,15 @@ public class CompressedIdSet extends IdSet {
     e1 = System.currentTimeMillis();
     System.out.println("compressed size: " + set.sizeInBytes() + ", took: "
         + (e1 - s1));
+    
+
+    bout = new ByteArrayOutputStream();
+    CompressedIdSet.serialize(set, bout);
+    bytes = bout.toByteArray();
+    System.out.println("compressed bytearray len: "+bytes.length);
 
     LongRandomAccessIterator iter1 = set.iterator();
     LongRandomAccessIterator iter2 = set2.iterator();
-    ;
 
     long start, end;
 
