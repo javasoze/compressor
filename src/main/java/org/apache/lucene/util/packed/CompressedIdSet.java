@@ -26,7 +26,7 @@ public class CompressedIdSet extends IdSet {
     }
 
     public long sizeInBytes() {
-      return 8 + 4 + valSet.ramBytesUsed() + 12;
+      return 8 + 4 + valSet.ramBytesUsed();
     }
     
     public static void serialize(ValSeg idset,DataOutputStream out) throws IOException{

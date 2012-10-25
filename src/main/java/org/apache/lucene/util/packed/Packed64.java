@@ -61,6 +61,8 @@ class Packed64 extends PackedInts.MutableImpl {
    * Optimization: Saves one lookup in {@link #get(int)}.
    */
   private final int bpvMinusBlockSize;
+  
+  private long[] longBuf = null;
 
   /**
    * Creates an array with the internal structures adjusted for the given limits
@@ -97,6 +99,9 @@ class Packed64 extends PackedInts.MutableImpl {
     this.buffer = buffer;
     maskRight = ~0L << (BLOCK_SIZE - bitsPerValue) >>> (BLOCK_SIZE - bitsPerValue);
     bpvMinusBlockSize = bitsPerValue - BLOCK_SIZE;
+    if (buffer.hasArray()){
+      longBuf = buffer.array();
+    }
   }
 
   /**
@@ -122,6 +127,7 @@ class Packed64 extends PackedInts.MutableImpl {
     buffer = LongBuffer.wrap(blocks);
     maskRight = ~0L << (BLOCK_SIZE - bitsPerValue) >>> (BLOCK_SIZE - bitsPerValue);
     bpvMinusBlockSize = bitsPerValue - BLOCK_SIZE;
+    longBuf = blocks;
   }
 
   private static int size(int valueCount, int bitsPerValue) {
@@ -143,12 +149,22 @@ class Packed64 extends PackedInts.MutableImpl {
     // The number of value-bits in the second long
     final long endBits = (majorBitPos & MOD_MASK) + bpvMinusBlockSize;
 
-    if (endBits <= 0) { // Single block
-      return (buffer.get(elementPos) >>> -endBits) & maskRight;
-    }
-    // Two blocks
-    return ((buffer.get(elementPos) << endBits) | (buffer.get(elementPos + 1) >>> (BLOCK_SIZE - endBits)))
+    if (longBuf != null){
+      if (endBits <= 0) { // Single block
+        return (longBuf[elementPos] >>> -endBits) & maskRight;
+      }
+      // Two blocks
+      return ((longBuf[elementPos] << endBits) | (longBuf[elementPos + 1] >>> (BLOCK_SIZE - endBits)))
         & maskRight;
+    }
+    else{
+      if (endBits <= 0) { // Single block
+        return (buffer.get(elementPos) >>> -endBits) & maskRight;
+      }
+      // Two blocks
+      return ((buffer.get(elementPos) << endBits) | (buffer.get(elementPos + 1) >>> (BLOCK_SIZE - endBits)))
+        & maskRight;
+    }
   }
 
   @Override
@@ -272,7 +288,7 @@ class Packed64 extends PackedInts.MutableImpl {
   @Override
   public long ramBytesUsed() {
     //return RamUsageEstimator.sizeOf(blocks);
-    return RamUsageEstimator.alignObjectSize((long) RamUsageEstimator.NUM_BYTES_ARRAY_HEADER + buffer.capacity());
+    return RamUsageEstimator.alignObjectSize((long) RamUsageEstimator.NUM_BYTES_ARRAY_HEADER +  (long) RamUsageEstimator.NUM_BYTES_LONG * buffer.capacity());
   }
 
   @Override
