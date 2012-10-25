@@ -149,7 +149,7 @@ class Packed64 extends PackedInts.MutableImpl {
     // The number of value-bits in the second long
     final long endBits = (majorBitPos & MOD_MASK) + bpvMinusBlockSize;
 
-    if (true){
+    if (longBuf != null){
       if (endBits <= 0) { // Single block
         return (longBuf[elementPos] >>> -endBits) & maskRight;
       }

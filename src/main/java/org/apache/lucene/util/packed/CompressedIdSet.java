@@ -1,6 +1,5 @@
 package org.apache.lucene.util.packed;
 
-import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -72,6 +71,9 @@ public class CompressedIdSet extends IdSet {
     private final int currentCount;
     private final ArrayList<ValSeg> segList;
     private final int size;
+    
+    private int tmpSegIdx = -1;
+    private long[] tmpSeg = null;
 
     CompressedLongIterator(long[] currentSeg, int currentCount,
         LinkedList<ValSeg> segList, int size) {
@@ -92,12 +94,16 @@ public class CompressedIdSet extends IdSet {
         // last block
         return currentSeg[m];
       } else {
-        ValSeg seg = this.segList.get(i);
-        long start = seg.minVal;
-        for (int l = 0; l <= m; ++l) {
-          start += seg.valSet.get(l);
+        if (tmpSegIdx != i || tmpSeg==null){
+          tmpSegIdx = i;
+          ValSeg seg = this.segList.get(i);
+          tmpSeg = new long[seg.valSet.size()];
+          tmpSeg[0] = seg.minVal;
+          for (int k=1;k<tmpSeg.length;++k){
+            tmpSeg[k] = tmpSeg[k-1]+seg.valSet.get(k);
+          }
         }
-        return start;
+        return tmpSeg[m];
       }
     }
 
@@ -281,8 +287,9 @@ public class CompressedIdSet extends IdSet {
 
     Arrays.sort(copy);
 
-    s1 = System.currentTimeMillis();
+
     CompressedIdSet set = new CompressedIdSet(blockSize);
+    s1 = System.currentTimeMillis();
     for (long v : copy) {
       set.addID(v);
     }
@@ -313,7 +320,6 @@ public class CompressedIdSet extends IdSet {
     System.out.println("uncompresed time2: " + (end - start));
 
     start = System.currentTimeMillis();
-
     for (int i = 0; i < iter1.numElems(); ++i) {
       long v = iter1.get(i);
       tmp += v;
