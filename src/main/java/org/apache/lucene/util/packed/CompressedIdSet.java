@@ -274,11 +274,6 @@ public class CompressedIdSet extends IdSet {
     System.out.println(" uncompressed size: " + set2.sizeInBytes() + ", took: "
         + (e1 - s1));
     
-    ByteArrayOutputStream bout = new ByteArrayOutputStream();
-    LongArrayIdSet.serialize(set2, bout);
-    byte[] bytes = bout.toByteArray();
-    System.out.println("uncompressed bytearray len: "+bytes.length);
-
     int blockSize = 1024;
     long[] data = set2.vals;
     long[] copy = new long[data.length];
@@ -295,12 +290,6 @@ public class CompressedIdSet extends IdSet {
     System.out.println("compressed size: " + set.sizeInBytes() + ", took: "
         + (e1 - s1));
     
-
-    bout = new ByteArrayOutputStream();
-    CompressedIdSet.serialize(set, bout);
-    bytes = bout.toByteArray();
-    System.out.println("compressed bytearray len: "+bytes.length);
-
     LongRandomAccessIterator iter1 = set.iterator();
     LongRandomAccessIterator iter2 = set2.iterator();
 

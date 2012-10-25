@@ -63,7 +63,7 @@ public class CompressedForwardIndex implements ForwardIndex {
 
     System.out.println("loading took: " + (end - start));
 
-    int numLookups = numElems;// 50000000;
+    int numLookups = 1000000;//numElems;// 50000000;
     start = System.currentTimeMillis();
     for (int i = 0; i < numLookups; ++i) {
        int val = rand.nextInt(numElems);
