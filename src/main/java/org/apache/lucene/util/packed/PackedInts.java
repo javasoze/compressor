@@ -19,6 +19,7 @@ package org.apache.lucene.util.packed;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.nio.LongBuffer;
 
 import org.apache.lucene.store.DataInput;
 import org.apache.lucene.store.DataOutput;
@@ -294,6 +295,10 @@ public class PackedInts {
      */
     void decode(long[] blocks, int blocksOffset, long[] values,
         int valuesOffset, int iterations);
+    
+
+    void decode(LongBuffer blocks, int blocksOffset, long[] values,
+        int valuesOffset, int iterations);
 
     /**
      * Read <code>8 * iterations * blockCount()</code> blocks from
@@ -388,6 +393,10 @@ public class PackedInts {
      */
     void encode(long[] values, int valuesOffset, long[] blocks,
         int blocksOffset, int iterations);
+    
+    void encode(long[] values, int valuesOffset, LongBuffer blocks,
+        int blocksOffset, int iterations);
+    
 
     /**
      * Read <code>iterations * valueCount()</code> values from

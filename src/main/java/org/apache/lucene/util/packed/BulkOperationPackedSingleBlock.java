@@ -1,5 +1,7 @@
 package org.apache.lucene.util.packed;
 
+import java.nio.LongBuffer;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -98,6 +100,15 @@ final class BulkOperationPackedSingleBlock extends BulkOperation {
       valuesOffset = decode(block, values, valuesOffset);
     }
   }
+  
+  @Override
+  public void decode(LongBuffer blocks, int blocksOffset, long[] values,
+      int valuesOffset, int iterations) {
+    for (int i = 0; i < iterations; ++i) {
+      final long block = blocks.get(blocksOffset++);
+      valuesOffset = decode(block, values, valuesOffset);
+    }
+  }
 
   @Override
   public void decode(byte[] blocks, int blocksOffset, long[] values,
@@ -141,6 +152,15 @@ final class BulkOperationPackedSingleBlock extends BulkOperation {
       int blocksOffset, int iterations) {
     for (int i = 0; i < iterations; ++i) {
       blocks[blocksOffset++] = encode(values, valuesOffset);
+      valuesOffset += valueCount;
+    }
+  }
+  
+  @Override
+  public void encode(long[] values, int valuesOffset, LongBuffer blocks,
+      int blocksOffset, int iterations) {
+    for (int i = 0; i < iterations; ++i) {
+      blocks.put(blocksOffset++, encode(values, valuesOffset));
       valuesOffset += valueCount;
     }
   }

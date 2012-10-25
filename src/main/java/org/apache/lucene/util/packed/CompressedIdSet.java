@@ -6,6 +6,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.LongBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -25,16 +26,17 @@ public class CompressedIdSet extends IdSet {
     }
 
     public long sizeInBytes() {
-      return 8 + 4 + valSet.ramBytesUsed();
+      return 8 + 4 + valSet.ramBytesUsed() + 12;
     }
     
     public static void serialize(ValSeg idset,DataOutputStream out) throws IOException{
       out.writeLong(idset.minVal);
       out.writeInt(idset.valSet.valueCount);
       out.writeInt(idset.valSet.bitsPerValue);
-      out.writeInt(idset.valSet.blocks.length);
-      for (long val : idset.valSet.blocks){
-        out.writeLong(val);
+      int count = idset.valSet.buffer.capacity();
+      out.writeInt(count);
+      for (int i=0;i<count;++i){
+        out.writeLong(idset.valSet.buffer.get(i));
       }
     }
     
@@ -43,13 +45,14 @@ public class CompressedIdSet extends IdSet {
       int valCount = in.readInt();
       int bitsPerVal = in.readInt();
       int len = in.readInt();
-      long[] blocks = new long[len];
+      
+      LongBuffer buffer = LongBuffer.allocate(len);
       
       for (int i=0;i<len;++i){
-        blocks[i] = in.readLong();
+        buffer.put(i,in.readLong());
       }
       
-      Packed64 valSet = new Packed64(blocks,valCount,bitsPerVal);
+      Packed64 valSet = new Packed64(buffer,valCount,bitsPerVal);
       ValSeg seg = new ValSeg();
       seg.minVal = minVal;
       seg.valSet = valSet;
@@ -256,7 +259,7 @@ public class CompressedIdSet extends IdSet {
   }
 
   public static void main(String[] args) throws Exception {
-    int count = 5 * 1024; // 100M longs
+    int count = 1024 * 1024; // 100M longs
     // int maxVal = 1000000;
     Random rand = new Random();
     LongArrayIdSet set2 = new LongArrayIdSet(count);
@@ -276,7 +279,7 @@ public class CompressedIdSet extends IdSet {
     byte[] bytes = bout.toByteArray();
     System.out.println("uncompressed bytearray len: "+bytes.length);
 
-    int blockSize = 256;
+    int blockSize = 1024;
     long[] data = set2.vals;
     long[] copy = new long[data.length];
     System.arraycopy(data, 0, copy, 0, data.length);

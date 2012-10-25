@@ -1,5 +1,7 @@
 package org.apache.lucene.util.packed;
 
+import java.nio.LongBuffer;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -66,6 +68,22 @@ class BulkOperationPacked extends BulkOperation {
         bitsLeft += 64;
       } else {
         values[valuesOffset++] = (blocks[blocksOffset] >>> bitsLeft) & mask;
+      }
+    }
+  }
+
+  @Override
+  public void decode(LongBuffer blocks, int blocksOffset, long[] values,
+      int valuesOffset, int iterations) {
+    int bitsLeft = 64;
+    for (int i = 0; i < valueCount * iterations; ++i) {
+      bitsLeft -= bitsPerValue;
+      if (bitsLeft < 0) {
+        values[valuesOffset++] = ((blocks.get(blocksOffset++) & ((1L << (bitsPerValue + bitsLeft)) - 1)) << -bitsLeft)
+            | (blocks.get(blocksOffset) >>> (64 + bitsLeft));
+        bitsLeft += 64;
+      } else {
+        values[valuesOffset++] = (blocks.get(blocksOffset) >>> bitsLeft) & mask;
       }
     }
   }
@@ -154,6 +172,29 @@ class BulkOperationPacked extends BulkOperation {
       } else { // bitsLeft < 0
         nextBlock |= values[valuesOffset] >>> -bitsLeft;
         blocks[blocksOffset++] = nextBlock;
+        nextBlock = (values[valuesOffset++] & ((1L << -bitsLeft) - 1)) << (64 + bitsLeft);
+        bitsLeft += 64;
+      }
+    }
+  }
+  
+  @Override
+  public void encode(long[] values, int valuesOffset, LongBuffer blocks,
+      int blocksOffset, int iterations) {
+    long nextBlock = 0;
+    int bitsLeft = 64;
+    for (int i = 0; i < valueCount * iterations; ++i) {
+      bitsLeft -= bitsPerValue;
+      if (bitsLeft > 0) {
+        nextBlock |= values[valuesOffset++] << bitsLeft;
+      } else if (bitsLeft == 0) {
+        nextBlock |= values[valuesOffset++];
+        blocks.put(blocksOffset++,nextBlock);
+        nextBlock = 0;
+        bitsLeft = 64;
+      } else { // bitsLeft < 0
+        nextBlock |= values[valuesOffset] >>> -bitsLeft;
+        blocks.put(blocksOffset++,nextBlock);
         nextBlock = (values[valuesOffset++] & ((1L << -bitsLeft) - 1)) << (64 + bitsLeft);
         bitsLeft += 64;
       }

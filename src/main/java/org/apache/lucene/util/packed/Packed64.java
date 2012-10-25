@@ -18,6 +18,8 @@ package org.apache.lucene.util.packed;
  */
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.LongBuffer;
 import java.util.Arrays;
 
 import org.apache.lucene.store.DataInput;
@@ -50,7 +52,7 @@ class Packed64 extends PackedInts.MutableImpl {
   /**
    * Values are stores contiguously in the blocks array.
    */
-  final long[] blocks;
+  final LongBuffer buffer;
   /**
    * A right-aligned mask of width BitsPerValue used by {@link #get(int)}.
    */
@@ -73,7 +75,7 @@ class Packed64 extends PackedInts.MutableImpl {
     // NOTE: block-size was previously calculated as
     // valueCount * bitsPerValue / BLOCK_SIZE + 1
     // due to memory layout requirements dictated by non-branching code
-    this(new long[size(valueCount, bitsPerValue)], valueCount, bitsPerValue);
+    this(LongBuffer.allocate(size(valueCount, bitsPerValue)), valueCount, bitsPerValue);
   }
 
   /**
@@ -90,9 +92,9 @@ class Packed64 extends PackedInts.MutableImpl {
    * @param bitsPerValue
    *          the number of bits available for any given value.
    */
-  public Packed64(long[] blocks, int valueCount, int bitsPerValue) {
+  public Packed64(LongBuffer buffer, int valueCount, int bitsPerValue) {
     super(valueCount, bitsPerValue);
-    this.blocks = blocks;
+    this.buffer = buffer;
     maskRight = ~0L << (BLOCK_SIZE - bitsPerValue) >>> (BLOCK_SIZE - bitsPerValue);
     bpvMinusBlockSize = bitsPerValue - BLOCK_SIZE;
   }
@@ -113,10 +115,11 @@ class Packed64 extends PackedInts.MutableImpl {
       throws IOException {
     super(valueCount, bitsPerValue);
     int size = size(valueCount, bitsPerValue);
-    blocks = new long[size]; // Previously +1 due to non-conditional tricks
+    long[] blocks = new long[size]; // Previously +1 due to non-conditional tricks
     for (int i = 0; i < size; i++) {
       blocks[i] = in.readLong();
     }
+    buffer = LongBuffer.wrap(blocks);
     maskRight = ~0L << (BLOCK_SIZE - bitsPerValue) >>> (BLOCK_SIZE - bitsPerValue);
     bpvMinusBlockSize = bitsPerValue - BLOCK_SIZE;
   }
@@ -141,10 +144,10 @@ class Packed64 extends PackedInts.MutableImpl {
     final long endBits = (majorBitPos & MOD_MASK) + bpvMinusBlockSize;
 
     if (endBits <= 0) { // Single block
-      return (blocks[elementPos] >>> -endBits) & maskRight;
+      return (buffer.get(elementPos) >>> -endBits) & maskRight;
     }
     // Two blocks
-    return ((blocks[elementPos] << endBits) | (blocks[elementPos + 1] >>> (BLOCK_SIZE - endBits)))
+    return ((buffer.get(elementPos) << endBits) | (buffer.get(elementPos + 1) >>> (BLOCK_SIZE - endBits)))
         & maskRight;
   }
 
@@ -176,7 +179,7 @@ class Packed64 extends PackedInts.MutableImpl {
     int blockIndex = (int) ((long) index * bitsPerValue) >>> BLOCK_BITS;
     assert (((long) index * bitsPerValue) & MOD_MASK) == 0;
     final int iterations = len / decoder.valueCount();
-    decoder.decode(blocks, blockIndex, arr, off, iterations);
+    decoder.decode(buffer, blockIndex, arr, off, iterations);
     final int gotValues = iterations * decoder.valueCount();
     index += gotValues;
     len -= gotValues;
@@ -203,15 +206,16 @@ class Packed64 extends PackedInts.MutableImpl {
     final long endBits = (majorBitPos & MOD_MASK) + bpvMinusBlockSize;
 
     if (endBits <= 0) { // Single block
-      blocks[elementPos] = blocks[elementPos] & ~(maskRight << -endBits)
-          | (value << -endBits);
+      long val = buffer.get(elementPos);
+      buffer.put(elementPos, val & ~(maskRight << -endBits)
+          | (value << -endBits));
       return;
     }
     // Two blocks
-    blocks[elementPos] = blocks[elementPos] & ~(maskRight >>> endBits)
-        | (value >>> endBits);
-    blocks[elementPos + 1] = blocks[elementPos + 1] & (~0L >>> endBits)
-        | (value << (BLOCK_SIZE - endBits));
+    buffer.put(elementPos, buffer.get(elementPos) & ~(maskRight >>> endBits)
+        | (value >>> endBits));
+    buffer.put(elementPos + 1, buffer.get(elementPos + 1) & (~0L >>> endBits)
+        | (value << (BLOCK_SIZE - endBits)));
   }
 
   @Override
@@ -242,7 +246,7 @@ class Packed64 extends PackedInts.MutableImpl {
     int blockIndex = (int) ((long) index * bitsPerValue) >>> BLOCK_BITS;
     assert (((long) index * bitsPerValue) & MOD_MASK) == 0;
     final int iterations = len / encoder.valueCount();
-    encoder.encode(arr, off, blocks, blockIndex, iterations);
+    encoder.encode(arr, off, buffer, blockIndex, iterations);
     final int setValues = iterations * encoder.valueCount();
     index += setValues;
     len -= setValues;
@@ -262,12 +266,13 @@ class Packed64 extends PackedInts.MutableImpl {
   @Override
   public String toString() {
     return "Packed64(bitsPerValue=" + bitsPerValue + ", size=" + size()
-        + ", elements.length=" + blocks.length + ")";
+        + ", elements.length=" + buffer.capacity() + ")";
   }
 
   @Override
   public long ramBytesUsed() {
-    return RamUsageEstimator.sizeOf(blocks);
+    //return RamUsageEstimator.sizeOf(blocks);
+    return RamUsageEstimator.alignObjectSize((long) RamUsageEstimator.NUM_BYTES_ARRAY_HEADER + buffer.capacity());
   }
 
   @Override
@@ -298,20 +303,20 @@ class Packed64 extends PackedInts.MutableImpl {
     // use them to set as many values as possible without applying any mask
     // or shift
     final int nAlignedBlocks = (nAlignedValues * bitsPerValue) >> 6;
-    final long[] nAlignedValuesBlocks;
+    final LongBuffer nAlignedValuesBlocks;
     {
       Packed64 values = new Packed64(nAlignedValues, bitsPerValue);
       for (int i = 0; i < nAlignedValues; ++i) {
         values.set(i, val);
       }
-      nAlignedValuesBlocks = values.blocks;
-      assert nAlignedBlocks <= nAlignedValuesBlocks.length;
+      nAlignedValuesBlocks = values.buffer;
+      assert nAlignedBlocks <= nAlignedValuesBlocks.capacity();
     }
     final int startBlock = (int) (((long) fromIndex * bitsPerValue) >>> 6);
     final int endBlock = (int) (((long) toIndex * bitsPerValue) >>> 6);
     for (int block = startBlock; block < endBlock; ++block) {
-      final long blockValue = nAlignedValuesBlocks[block % nAlignedBlocks];
-      blocks[block] = blockValue;
+      final long blockValue = nAlignedValuesBlocks.get(block % nAlignedBlocks);
+      buffer.put(block, blockValue);
     }
 
     // fill the gap
@@ -332,6 +337,7 @@ class Packed64 extends PackedInts.MutableImpl {
 
   @Override
   public void clear() {
-    Arrays.fill(blocks, 0L);
+    buffer.clear();
+   // Arrays.fill(blocks, 0L);
   }
 }
