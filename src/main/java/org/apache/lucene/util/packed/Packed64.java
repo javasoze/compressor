@@ -18,9 +18,7 @@ package org.apache.lucene.util.packed;
  */
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
-import java.util.Arrays;
 
 import org.apache.lucene.store.DataInput;
 import org.apache.lucene.util.RamUsageEstimator;
@@ -120,14 +118,13 @@ class Packed64 extends PackedInts.MutableImpl {
       throws IOException {
     super(valueCount, bitsPerValue);
     int size = size(valueCount, bitsPerValue);
-    long[] blocks = new long[size]; // Previously +1 due to non-conditional tricks
+    longBuf = new long[size]; // Previously +1 due to non-conditional tricks
     for (int i = 0; i < size; i++) {
-      blocks[i] = in.readLong();
+      longBuf[i] = in.readLong();
     }
-    buffer = LongBuffer.wrap(blocks);
+    buffer = LongBuffer.wrap(longBuf);
     maskRight = ~0L << (BLOCK_SIZE - bitsPerValue) >>> (BLOCK_SIZE - bitsPerValue);
     bpvMinusBlockSize = bitsPerValue - BLOCK_SIZE;
-    longBuf = blocks;
   }
 
   private static int size(int valueCount, int bitsPerValue) {
