@@ -256,7 +256,7 @@ public class CompressedIdSet extends IdSet {
   }
 
   public static void main(String[] args) throws Exception {
-    int count = 5 * 1024; // 100M longs
+    int count = 1024 * 1024; // 100M longs
     // int maxVal = 1000000;
     Random rand = new Random();
     LongArrayIdSet set2 = new LongArrayIdSet(count);

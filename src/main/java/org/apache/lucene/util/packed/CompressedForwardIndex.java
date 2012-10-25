@@ -47,7 +47,7 @@ public class CompressedForwardIndex implements ForwardIndex {
    */
   public static void main(String[] args) throws Exception {
     int numElems = 100000000;
-    int numTerms = 1000000;
+    int numTerms = 100000;
 
     Random rand = new Random();
     ForwardIndex idx = getPacked(numTerms, numElems);
@@ -66,9 +66,9 @@ public class CompressedForwardIndex implements ForwardIndex {
     int numLookups = numElems;// 50000000;
     start = System.currentTimeMillis();
     for (int i = 0; i < numLookups; ++i) {
-      // int val = rand.nextInt(numElems);
+       int val = rand.nextInt(numElems);
 
-      idx.get(i);
+      idx.get(val);
       // int val2 = idx2.readInt(i);
       // if (val != val2) throw new Exception("broken");
     }
