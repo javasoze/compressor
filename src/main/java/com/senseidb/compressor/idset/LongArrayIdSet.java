@@ -8,7 +8,7 @@ import java.io.OutputStream;
 
 public class LongArrayIdSet extends IdSet {
 
-  private static class LongArrayIdIterator implements LongRandomAccessIterator {
+  public static class LongArrayIdIterator implements LongRandomAccessIterator {
     private final long[] array;
     private final int currentSize;
 
