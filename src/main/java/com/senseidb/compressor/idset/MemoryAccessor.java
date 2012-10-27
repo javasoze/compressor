@@ -58,4 +58,30 @@ public class MemoryAccessor {
  public static int getByte(long addr, int idx) {
    return UNSAFE.getByte(addr+idx);
  }
+ 
+
+ public static void putByte(long addr, int idx, byte val) {
+   UNSAFE.putByte(addr+idx, val);
+ }
+
+ public static int getInt(long addr, int idx) {
+   return UNSAFE.getInt(addr+idx*4);
+ }
+ 
+
+ public static int getInt(long addr) {
+   return UNSAFE.getInt(addr);
+ }
+ 
+ public static void putInt(long addr, int idx, int val) {
+   UNSAFE.putInt(addr+idx*4, val);
+ }
+ 
+ public static void putInt(long addr, int val) {
+   UNSAFE.putInt(addr, val);
+ }
+ 
+ public static void fill(long addr, long len, byte val){
+   UNSAFE.setMemory(addr, len, val);
+ }
 }
