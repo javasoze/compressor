@@ -63,7 +63,7 @@ public class CompressedIdSet extends IdSet {
       LongRandomAccessIterator {
 
     private Iterator<ValSeg> iter;
-    private ValSeg cs = null;
+    private long[] currentArr = null;
     private int readCursor;
     private long lastVal;
 
@@ -97,10 +97,12 @@ public class CompressedIdSet extends IdSet {
         if (tmpSegIdx != i || tmpSeg==null){
           tmpSegIdx = i;
           ValSeg seg = this.segList.get(i);
-          tmpSeg = new long[seg.valSet.size()];
+          long[] tmpArr = new long[seg.valSet.size()];
+          seg.valSet.get(0, tmpArr, 0, tmpArr.length);
+          tmpSeg = new long[tmpArr.length];
           tmpSeg[0] = seg.minVal;
           for (int k=1;k<tmpSeg.length;++k){
-            tmpSeg[k] = tmpSeg[k-1]+seg.valSet.get(k);
+            tmpSeg[k] = tmpSeg[k-1]+tmpArr[k];
           }
         }
         return tmpSeg[m];
@@ -109,7 +111,7 @@ public class CompressedIdSet extends IdSet {
 
     @Override
     public boolean hasNext() {
-      if (cs == null) {
+      if (currentArr == null) {
         return readCursor < currentCount;
       }
       return true;
@@ -117,22 +119,24 @@ public class CompressedIdSet extends IdSet {
 
     @Override
     public long next() {
-      if (cs == null) {
+      if (currentArr == null) {
         long val = currentSeg[readCursor];
         readCursor++;
         return val;
       }
-      if (readCursor < cs.valSet.size()) {
-        long val = cs.valSet.get(readCursor);
+      if (readCursor < currentArr.length) {
+        long val = currentArr[readCursor];
         val += lastVal;
         lastVal = val;
-        if (readCursor == cs.valSet.size() - 1) {
+        if (readCursor == currentArr.length - 1) {
           readCursor = 0;
           if (iter.hasNext()) {
-            cs = iter.next();
-            lastVal = cs.minVal;
+            ValSeg seg = iter.next();
+            currentArr = new long[seg.valSet.size()];
+            seg.valSet.get(0, currentArr, 0, currentArr.length);
+            lastVal = seg.minVal;
           } else {
-            cs = null;
+            currentArr = null;
             lastVal = 0;
           }
         } else {
@@ -148,10 +152,12 @@ public class CompressedIdSet extends IdSet {
       iter = segList.iterator();
       readCursor = 0;
       if (iter.hasNext()) {
-        cs = iter.next();
-        lastVal = cs.minVal;
+        ValSeg seg = iter.next();
+        currentArr = new long[seg.valSet.size()];
+        seg.valSet.get(0, currentArr, 0, currentArr.length);
+        lastVal = seg.minVal;
       } else {
-        cs = null;
+        currentArr = null;
         lastVal = 0;
       }
     }
@@ -247,14 +253,15 @@ public class CompressedIdSet extends IdSet {
     ValSeg seg = new ValSeg();
     seg.minVal = currentSeg[0];
     seg.valSet = new Packed64(currentSeg.length, nBits);
+    long[] tmp = new long[currentSeg.length];
     for (int i = 0; i < currentSeg.length; ++i) {
       if (i > 0) {
-        long val = currentSeg[i] - currentSeg[i - 1];
-        seg.valSet.set(i, val);
+        tmp[i] = currentSeg[i] - currentSeg[i - 1];
       } else {
-        seg.valSet.set(i, 0);
+        tmp[i]=0;
       }
     }
+    seg.valSet.set(0, tmp, 0, tmp.length);
     segList.add(seg);
     init();
   }

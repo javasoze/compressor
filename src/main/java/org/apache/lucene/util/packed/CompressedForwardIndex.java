@@ -1,17 +1,23 @@
 package org.apache.lucene.util.packed;
 
+import java.io.IOException;
 import java.util.Random;
+
+import org.apache.lucene.store.DataInput;
+import org.apache.lucene.store.DataOutput;
+import org.apache.lucene.util.packed.PackedInts.Mutable;
+import org.apache.lucene.util.packed.PackedInts.Reader;
 
 import com.senseidb.compressor.idset.DirectForwardIndex;
 import com.senseidb.compressor.idset.ForwardIndex;
 import com.senseidb.compressor.util.CompressorUtil;
 
 public class CompressedForwardIndex implements ForwardIndex {
-  private final Packed64 data;
+  private final Mutable data;
 
   public CompressedForwardIndex(long numTerms, int numDocs) {
     int bitsPerVal = CompressorUtil.getNumBits(numTerms);
-    data = new Packed64(numDocs, bitsPerVal);
+    data = PackedInts.getMutable(numDocs, bitsPerVal, PackedInts.DEFAULT);
   }
 
   @Override
@@ -27,6 +33,14 @@ public class CompressedForwardIndex implements ForwardIndex {
   @Override
   public long sizeInBytes() {
     return data.ramBytesUsed();
+  }
+  
+  public void save(DataOutput dataout) throws IOException{
+    data.save(dataout);
+  }
+  
+  public void load(DataInput input) throws IOException{
+    Reader reader = PackedInts.getReader(input);
   }
 
   static ForwardIndex getNormal(int numTerms, int numDocs) {
