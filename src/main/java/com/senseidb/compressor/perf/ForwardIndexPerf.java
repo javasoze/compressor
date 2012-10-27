@@ -57,13 +57,13 @@ public class ForwardIndexPerf {
     
     System.out.println("data size: "+bytes.length);
 
-    ByteBuffer offheapMem = ByteBuffer.allocateDirect(bytes.length);
+    ByteBuffer offheapMem = ByteBuffer.allocate(bytes.length);
     offheapMem.put(bytes);
     offheapMem.rewind();
     end = System.currentTimeMillis();
     
     System.out.println("saving took: " + (end - start));
-    /*
+    
     Reader reader = PackedForwardIndex.load(offheapMem);
 
     start = System.currentTimeMillis();
@@ -73,8 +73,8 @@ public class ForwardIndexPerf {
     }
     end = System.currentTimeMillis();
 
-    System.out.println("random access 2 took: " + (end - start));
-    */
+    System.out.println("iterate in array took: " + (end - start));
+    
     offheapMem.rewind();
     ReaderIterator iter = idx.iterator(offheapMem);
     
@@ -86,6 +86,21 @@ public class ForwardIndexPerf {
     end = System.currentTimeMillis();
     
 
-    System.out.println("iteration took: " + (end - start));
+    System.out.println("stream iterate took: " + (end - start));
+    
+System.out.println("iterate in array took: " + (end - start));
+    
+    offheapMem.rewind();
+    iter = idx.iterator(offheapMem);
+    
+    start = System.currentTimeMillis();
+    count = iter.size();
+    for (int i=0;i<count;++i){
+      tmp += iter.next();
+    }
+    end = System.currentTimeMillis();
+    
+
+    System.out.println("stream iterate again took: " + (end - start));
   }
 }

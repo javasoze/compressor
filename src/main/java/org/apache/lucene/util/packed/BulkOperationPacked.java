@@ -2,6 +2,8 @@ package org.apache.lucene.util.packed;
 
 import java.nio.LongBuffer;
 
+import com.senseidb.compressor.idset.MemoryAccessor;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -76,14 +78,15 @@ class BulkOperationPacked extends BulkOperation {
   public void decode(LongBuffer blocks, int blocksOffset, long[] values,
       int valuesOffset, int iterations) {
     int bitsLeft = 64;
+    long addr = MemoryAccessor.getDirectBufferBaseAddress(blocks);
     for (int i = 0; i < valueCount * iterations; ++i) {
       bitsLeft -= bitsPerValue;
       if (bitsLeft < 0) {
-        values[valuesOffset++] = ((blocks.get(blocksOffset++) & ((1L << (bitsPerValue + bitsLeft)) - 1)) << -bitsLeft)
-            | (blocks.get(blocksOffset) >>> (64 + bitsLeft));
+        values[valuesOffset++] = ((MemoryAccessor.getLong(addr,blocksOffset++) & ((1L << (bitsPerValue + bitsLeft)) - 1)) << -bitsLeft)
+            | (MemoryAccessor.getLong(addr,blocksOffset) >>> (64 + bitsLeft));
         bitsLeft += 64;
       } else {
-        values[valuesOffset++] = (blocks.get(blocksOffset) >>> bitsLeft) & mask;
+        values[valuesOffset++] = (MemoryAccessor.getLong(addr,blocksOffset) >>> bitsLeft) & mask;
       }
     }
   }
@@ -183,6 +186,9 @@ class BulkOperationPacked extends BulkOperation {
       int blocksOffset, int iterations) {
     long nextBlock = 0;
     int bitsLeft = 64;
+
+    //long addr = MemoryAccessor.getDirectBufferBaseAddress(blocks);
+    
     for (int i = 0; i < valueCount * iterations; ++i) {
       bitsLeft -= bitsPerValue;
       if (bitsLeft > 0) {
