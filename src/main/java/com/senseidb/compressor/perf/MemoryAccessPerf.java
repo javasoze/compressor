@@ -171,6 +171,8 @@ public class MemoryAccessPerf {
         // Test 3: Random memory reads
         timings[0] = timings[1] = timings[2] = timings[3] = 0L;
         long sum = 0L;
+        long directIntTime = 0L;
+        long directByteTime = 0L;
         for (int i = 0; i < numPasses; i++) {
           // Byte array reads
           long startNano = System.nanoTime();
@@ -197,18 +199,38 @@ public class MemoryAccessPerf {
             sum += MemoryAccessor.getInt(directBaseAddr + byteIndices[j]);
           }
           timings[3] += System.nanoTime() - startNano;
+          
+       // direct int reads
+          startNano = System.nanoTime();
+          for (int j = 0; j < numAccess; j++) {
+            // Note that getInt uses absolute address, not int indices
+            sum += direct.getInt(intIndices[j]);
+          }
+          directIntTime += System.nanoTime() - startNano;
+          
+       // direct byte reads
+          startNano = System.nanoTime();
+          for (int j = 0; j < numAccess; j++) {
+            // Note that getInt uses absolute address, not int indices
+            sum += direct.get(byteIndices[j]);
+          }
+          directByteTime += System.nanoTime() - startNano;
         }
         System.out.println(String.format("Random reads (averaged over %d runs %d accesses): \n" +
                                          "  byte array:\t%d nanos\n" +
                                          "  int array:\t%d nanos\n" +
                                          "  unsafe byte:\t%d nanos\n" +
-                                         "  unsafe int:\t%d nanos",
+                                         "  unsafe int:\t%d nanos\n" +
+                                         "  direct int:\t%d nanos\n" +
+                                         "  direct byte:\t%d nanos\n" ,
                                          numPasses,
                                          numAccess,
                                          timings[0] / (numPasses * numAccess),
                                          timings[1] / (numPasses * numAccess),
                                          timings[2] / (numPasses * numAccess),
-                                         timings[3] / (numPasses * numAccess)));
+                                         timings[3] / (numPasses * numAccess),
+                                         directIntTime / (numPasses * numAccess),
+                                         directByteTime / (numPasses * numAccess)));
         System.out.println("Sum: " + sum);
       }
   
