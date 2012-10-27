@@ -53,4 +53,9 @@ public class MemoryAccessor {
  public static long getLong(long addr, int idx) {
    return UNSAFE.getLong(addr+idx*8);
  }
+ 
+
+ public static int getByte(long addr, int idx) {
+   return UNSAFE.getByte(addr+idx);
+ }
 }
