@@ -54,6 +54,18 @@ public class MemoryAccessor {
    return UNSAFE.getLong(addr+idx*8);
  }
  
+ public static long getLong(long addr) {
+   return UNSAFE.getLong(addr);
+ }
+ 
+ public static short getShort(long addr, int idx) {
+   return UNSAFE.getShort(addr+idx*2);
+ }
+ 
+ public static short getShort(long addr) {
+   return UNSAFE.getShort(addr);
+ }
+ 
 
  public static int getByte(long addr, int idx) {
    return UNSAFE.getByte(addr+idx);
@@ -69,6 +81,13 @@ public class MemoryAccessor {
  }
  
 
+ static int swap(int x) {
+            return ((x << 24) |
+                    ((x & 0x0000ff00) <<  8) |
+                    ((x & 0x00ff0000) >>> 8) |
+                    (x >>> 24));
+  }
+ 
  public static int getInt(long addr) {
    return UNSAFE.getInt(addr);
  }
@@ -77,8 +96,20 @@ public class MemoryAccessor {
    UNSAFE.putInt(addr+idx*4, val);
  }
  
+ public static void putByte(long addr, byte val) {
+   UNSAFE.putByte(addr, val);
+ }
+ 
  public static void putInt(long addr, int val) {
    UNSAFE.putInt(addr, val);
+ }
+ 
+ public static void putLong(long addr, int idx, long val) {
+   UNSAFE.putLong(addr+idx*8, val);
+ }
+ 
+ public static void putLong(long addr, long val) {
+   UNSAFE.putLong(addr, val);
  }
  
  public static void fill(long addr, long len, byte val){

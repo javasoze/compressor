@@ -1,15 +1,22 @@
 package com.senseidb.compressor.perf;
 
-import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.util.Random;
 
+import org.apache.lucene.store.DataInput;
+import org.apache.lucene.store.DataOutput;
+import org.apache.lucene.store.InputStreamDataInput;
+import org.apache.lucene.store.OutputStreamDataOutput;
 import org.apache.lucene.util.packed.PackedInts.Reader;
 import org.apache.lucene.util.packed.PackedInts.ReaderIterator;
 
 import com.senseidb.compressor.idset.DirectForwardIndex;
 import com.senseidb.compressor.idset.ForwardIndex;
 import com.senseidb.compressor.idset.PackedForwardIndex;
+import com.senseidb.compressor.io.ByteBufferInputStream;
+import com.senseidb.compressor.io.ByteBufferOutputStream;
+import com.senseidb.compressor.io.DirectByteBufferDataInput;
+import com.senseidb.compressor.io.DirectByteBufferDataOutput;
 
 public class ForwardIndexPerf {
 
@@ -22,12 +29,30 @@ public class ForwardIndexPerf {
     return new DirectForwardIndex(numElems);
   }
   
+  static DataOutput getDataOutput(ByteBuffer buffer){
+    if (buffer.isDirect()){
+      return new DirectByteBufferDataOutput(buffer);
+    }
+    else{
+      return new OutputStreamDataOutput(new ByteBufferOutputStream(buffer));
+    }
+  }
+  
+  static DataInput getDataInput(ByteBuffer buffer){
+    if (buffer.isDirect()){
+      return new DirectByteBufferDataInput(buffer);
+    }
+    else{
+      return new InputStreamDataInput(new ByteBufferInputStream(buffer));
+    }
+  }
+  
   public static void main(String[] args) throws Exception{
     int numElems = 100000000;
     int numTerms = 100000;
 
     Random rand = new Random();
-    ForwardIndex idx = getPacked(numTerms, numElems);
+    ForwardIndex idx = getDirect(numTerms,numElems);//getPacked(numTerms, numElems);
 
     long start = System.currentTimeMillis();
     for (int i = 0; i < numElems; ++i) {
@@ -41,7 +66,7 @@ public class ForwardIndexPerf {
     int numLookups = 1000000;
     start = System.currentTimeMillis();
     int tmp = 0;
-    for (int i = 0; i < numLookups; ++i) {
+    for (int i = 0; i < numElems; ++i) {
       int val = rand.nextInt(numElems);
       tmp += idx.get(val);
     }
@@ -49,22 +74,28 @@ public class ForwardIndexPerf {
 
     System.out.println("random access took: " + (end - start));
     
-    ByteArrayOutputStream bout = new ByteArrayOutputStream();
     start = System.currentTimeMillis();
-    idx.save(bout);
-    bout.flush();
-    byte[] bytes = bout.toByteArray();
     
-    System.out.println("data size: "+bytes.length);
+    for (int i = 0; i < numElems; ++i) {
+      tmp += idx.get(i);
+    }
+    end = System.currentTimeMillis();
 
-    ByteBuffer offheapMem = ByteBuffer.allocate(bytes.length);
-    offheapMem.put(bytes);
+    System.out.println("mem iterate: " + (end - start));
+    
+    System.out.println("size: "+idx.sizeInBytes());
+    ByteBuffer offheapMem = ByteBuffer.allocateDirect((int)idx.sizeInBytes()+9); // 9 byes of header
+    //ByteBuffer offheapMem = ByteBuffer.allocate((int)idx.sizeInBytes()+9); // 9 byes of header
+    DataOutput dout = getDataOutput(offheapMem);
+    start = System.currentTimeMillis();
+    idx.save(dout);
+        
     offheapMem.rewind();
     end = System.currentTimeMillis();
     
     System.out.println("saving took: " + (end - start));
     
-    Reader reader = PackedForwardIndex.load(offheapMem);
+    Reader reader = idx.load(getDataInput(offheapMem));
 
     start = System.currentTimeMillis();
     int s = reader.size();
@@ -76,7 +107,7 @@ public class ForwardIndexPerf {
     System.out.println("iterate in array took: " + (end - start));
     
     offheapMem.rewind();
-    ReaderIterator iter = idx.iterator(offheapMem);
+    ReaderIterator iter = idx.iterator(getDataInput(offheapMem));
     
     start = System.currentTimeMillis();
     int count = iter.size();
@@ -91,7 +122,7 @@ public class ForwardIndexPerf {
 System.out.println("iterate in array took: " + (end - start));
     
     offheapMem.rewind();
-    iter = idx.iterator(offheapMem);
+    iter = idx.iterator(getDataInput(offheapMem));
     
     start = System.currentTimeMillis();
     count = iter.size();
@@ -100,7 +131,6 @@ System.out.println("iterate in array took: " + (end - start));
     }
     end = System.currentTimeMillis();
     
-
     System.out.println("stream iterate again took: " + (end - start));
   }
 }

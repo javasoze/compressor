@@ -334,6 +334,27 @@ public class CompressedIdSet extends IdSet {
     }
     end = System.currentTimeMillis();
     System.out.println("uncompressed ra time2: " + (end - start));
+    
+    start = System.currentTimeMillis();
+    int numElems = (int)iter2.numElems();
+    for (int i = 0; i < numElems; ++i) {
+      int val = rand.nextInt(numElems);
+      long v = iter2.get(val);
+      tmp += v;
+    }
+    end = System.currentTimeMillis();
+    System.out.println("random compressed ra time2: " + (end - start));
+    
+    start = System.currentTimeMillis();
+
+    numElems = (int)iter2.numElems();
+    for (int i = 0; i < numElems; ++i) {
+      int val = rand.nextInt(numElems);
+      long v = iter2.get(val);
+      tmp += v;
+    }
+    end = System.currentTimeMillis();
+    System.out.println("random uncompressed ra time2: " + (end - start));
 
   }
 }

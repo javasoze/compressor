@@ -1,19 +1,14 @@
 package com.senseidb.compressor.idset;
 
 import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.ByteBuffer;
 
 import org.apache.lucene.store.DataInput;
 import org.apache.lucene.store.DataOutput;
-import org.apache.lucene.store.InputStreamDataInput;
-import org.apache.lucene.store.OutputStreamDataOutput;
 import org.apache.lucene.util.packed.PackedInts;
 import org.apache.lucene.util.packed.PackedInts.Mutable;
 import org.apache.lucene.util.packed.PackedInts.Reader;
 import org.apache.lucene.util.packed.PackedInts.ReaderIterator;
 
-import com.senseidb.compressor.io.ByteBufferInputStream;
 import com.senseidb.compressor.util.CompressorUtil;
 
 public class PackedForwardIndex implements ForwardIndex {
@@ -40,22 +35,21 @@ public class PackedForwardIndex implements ForwardIndex {
   }
 
   @Override
-  public void save(OutputStream out) throws IOException{
-    DataOutput dout = new OutputStreamDataOutput(out);
-    data.save(dout);
+  public void save(DataOutput out) throws IOException{
+    //DataOutput dout = new DirectByteBufferDataOutput(out);
+    data.save(out);
   }
   
-  public static Reader load(ByteBuffer input) throws IOException{
-    ByteBufferInputStream bbin = new ByteBufferInputStream(input);
-    DataInput din = new InputStreamDataInput(bbin);
-    Reader reader = PackedInts.getReader(din);
+  @Override
+  public Reader load(DataInput input) throws IOException{
+    //DataInput din = new DirectByteBufferDataInput(input);
+    Reader reader = PackedInts.getReader(input);
     return reader;
   }
 
   @Override
-  public ReaderIterator iterator(ByteBuffer input) throws IOException{
-    ByteBufferInputStream bbin = new ByteBufferInputStream(input);
-    DataInput din = new InputStreamDataInput(bbin);
-    return PackedInts.getReaderIterator(din, PackedInts.DEFAULT_BUFFER_SIZE);
+  public ReaderIterator iterator(DataInput input) throws IOException{
+    //DataInput din = new DirectByteBufferDataInput(input);
+    return PackedInts.getReaderIterator(input, PackedInts.DEFAULT_BUFFER_SIZE);
   }
 }

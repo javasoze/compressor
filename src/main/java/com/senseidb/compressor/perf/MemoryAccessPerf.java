@@ -196,7 +196,7 @@ public class MemoryAccessPerf {
           startNano = System.nanoTime();
           for (int j = 0; j < numAccess; j++) {
             // Note that getInt uses absolute address, not int indices
-            sum += MemoryAccessor.getInt(directBaseAddr + byteIndices[j]);
+            sum += MemoryAccessor.getInt(directBaseAddr + intIndices[j]);
           }
           timings[3] += System.nanoTime() - startNano;
           
@@ -204,7 +204,11 @@ public class MemoryAccessPerf {
           startNano = System.nanoTime();
           for (int j = 0; j < numAccess; j++) {
             // Note that getInt uses absolute address, not int indices
-            sum += direct.getInt(intIndices[j]);
+            int v1 = direct.getInt(intIndices[j]);
+            int v2 = MemoryAccessor.getInt(directBaseAddr + intIndices[j]);
+            if (v1!=v2) throw new RuntimeException("error");
+            assert v1==v2;
+            sum += v1;//direct.getInt(intIndices[j]);
           }
           directIntTime += System.nanoTime() - startNano;
           

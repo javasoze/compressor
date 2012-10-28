@@ -18,13 +18,10 @@ package org.apache.lucene.util.packed;
  */
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 
 import org.apache.lucene.store.DataInput;
 import org.apache.lucene.util.RamUsageEstimator;
-
-import com.senseidb.compressor.idset.MemoryAccessor;
 
 /**
  * Space optimized random access capable array of values with a fixed number of
@@ -64,8 +61,6 @@ class Packed64 extends PackedInts.MutableImpl {
   private final int bpvMinusBlockSize;
   
   private long[] longBuf = null;
-  
-  private final long baseAddr;
 
   /**
    * Creates an array with the internal structures adjusted for the given limits
@@ -81,8 +76,6 @@ class Packed64 extends PackedInts.MutableImpl {
     // valueCount * bitsPerValue / BLOCK_SIZE + 1
     // due to memory layout requirements dictated by non-branching code
     this(LongBuffer.allocate(size(valueCount, bitsPerValue)), valueCount, bitsPerValue);
-    
-   // this(ByteBuffer.allocateDirect(size(valueCount, bitsPerValue)*8).asLongBuffer(), valueCount, bitsPerValue);
   }
 
   /**
@@ -107,7 +100,6 @@ class Packed64 extends PackedInts.MutableImpl {
     if (buffer.hasArray()){
       longBuf = buffer.array();
     }
-    baseAddr = MemoryAccessor.getDirectBufferBaseAddress(buffer);
   }
 
   /**
@@ -133,7 +125,6 @@ class Packed64 extends PackedInts.MutableImpl {
     buffer = LongBuffer.wrap(longBuf);
     maskRight = ~0L << (BLOCK_SIZE - bitsPerValue) >>> (BLOCK_SIZE - bitsPerValue);
     bpvMinusBlockSize = bitsPerValue - BLOCK_SIZE;
-    baseAddr = MemoryAccessor.getDirectBufferBaseAddress(buffer);
   }
 
   private static int size(int valueCount, int bitsPerValue) {
@@ -165,10 +156,10 @@ class Packed64 extends PackedInts.MutableImpl {
     }
     else{
       if (endBits <= 0) { // Single block
-        return (MemoryAccessor.getLong(baseAddr, elementPos) >>> -endBits) & maskRight;
+        return (buffer.get(elementPos) >>> -endBits) & maskRight;
       }
       // Two blocks
-      return ((MemoryAccessor.getLong(baseAddr,elementPos) << endBits) | (MemoryAccessor.getLong(baseAddr,elementPos + 1) >>> (BLOCK_SIZE - endBits)))
+      return ((buffer.get(elementPos) << endBits) | (buffer.get(elementPos + 1) >>> (BLOCK_SIZE - endBits)))
         & maskRight;
     }
   }

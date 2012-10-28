@@ -109,6 +109,7 @@ public class IntArrayDSITest {
     
     return CompressedIdSet.deserialize(new ByteArrayInputStream(bytes));
   }
+  
 
   @Test
   public void testIdSet() throws Exception {

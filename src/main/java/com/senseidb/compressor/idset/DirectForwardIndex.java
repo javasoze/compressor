@@ -1,11 +1,12 @@
 package com.senseidb.compressor.idset;
 
 import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 
+import org.apache.lucene.store.DataInput;
+import org.apache.lucene.store.DataOutput;
 import org.apache.lucene.util.LongsRef;
+import org.apache.lucene.util.packed.PackedInts.Reader;
 import org.apache.lucene.util.packed.PackedInts.ReaderIterator;
 
 public class DirectForwardIndex implements ForwardIndex {
@@ -26,10 +27,20 @@ public class DirectForwardIndex implements ForwardIndex {
   public long sizeInBytes() {
     return 8 * arr.length;
   }
+  
+  private static long[] readFromDataInput(DataInput in) throws IOException{
+    int count = in.readInt();
+    long[] arr = new long[count];
+    for (int i=0;i<count;++i){
+      arr[i] = in.readLong();
+    }
+    return arr;
+  }
 
   @Override
-  public ReaderIterator iterator(ByteBuffer in) {
-    final LongBuffer buf = in.asLongBuffer();
+  public ReaderIterator iterator(DataInput in) throws IOException{
+    long[] arr = readFromDataInput(in);
+    final LongBuffer buf = LongBuffer.wrap(arr);
     return new ReaderIterator(){
 
       @Override
@@ -75,10 +86,57 @@ public class DirectForwardIndex implements ForwardIndex {
   }
 
   @Override
-  public void save(OutputStream output) throws IOException {
-    ByteBuffer buf = ByteBuffer.allocate(arr.length * 8);
-    LongBuffer longBuf = buf.asLongBuffer();
-    longBuf.put(arr);
-    output.write(buf.array());
+  public void save(DataOutput buf) throws IOException {
+    buf.writeInt(arr.length);
+    for (int i=0;i<arr.length;++i){
+      buf.writeLong(arr[i]);
+    }
   }
+
+  @Override
+  public Reader load(DataInput input) throws IOException {
+    final long[] arr = readFromDataInput(input);
+    return new Reader(){
+
+      @Override
+      public long get(int index) {
+        return arr[index];
+      }
+
+      @Override
+      public int get(int index, long[] target, int off, int len) {
+        int minLen = Math.min(arr.length, len);
+        System.arraycopy(arr, index,target, off, minLen);
+        return minLen;
+      }
+
+      @Override
+      public int getBitsPerValue() {
+        return 64;
+      }
+
+      @Override
+      public int size() {
+        return arr.length;
+      }
+
+      @Override
+      public long ramBytesUsed() {
+        return 8*arr.length;
+      }
+
+      @Override
+      public Object getArray() {
+        return arr;
+      }
+
+      @Override
+      public boolean hasArray() {
+        return true;
+      }
+      
+    };
+  }
+  
+  
 }
