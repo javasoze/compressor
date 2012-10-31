@@ -7,8 +7,9 @@ import org.apache.lucene.store.DataOutput;
 import org.apache.lucene.util.packed.PackedInts;
 import org.apache.lucene.util.packed.PackedInts.Mutable;
 import org.apache.lucene.util.packed.PackedInts.Reader;
-import org.apache.lucene.util.packed.PackedInts.ReaderIterator;
+import org.apache.lucene.util.packed.PackedInts.Writer;
 
+import com.senseidb.compressor.idset.IdSet.LongRandomAccessIterator;
 import com.senseidb.compressor.util.CompressorUtil;
 
 public class PackedForwardIndex implements ForwardIndex {
@@ -16,7 +17,7 @@ public class PackedForwardIndex implements ForwardIndex {
   private Mutable data;
   public PackedForwardIndex(int numDocs, int numTerms){
     int bitsPerVal = CompressorUtil.getNumBits(numTerms);
-    data = PackedInts.getMutable(numDocs, bitsPerVal, PackedInts.DEFAULT);
+    data = PackedInts.getMutable(numDocs, bitsPerVal);
   }
   
   @Override
@@ -26,7 +27,7 @@ public class PackedForwardIndex implements ForwardIndex {
 
   @Override
   public long sizeInBytes() {
-    return data.ramBytesUsed();
+    return data.getBitsPerValue()*data.size();
   }
   
   @Override
@@ -36,8 +37,14 @@ public class PackedForwardIndex implements ForwardIndex {
 
   @Override
   public void save(DataOutput out) throws IOException{
-    //DataOutput dout = new DirectByteBufferDataOutput(out);
-    data.save(out);
+    int size = data.size();
+    Writer writer = PackedInts.getWriter(out, data.size(), data.getBitsPerValue());
+    for (int i=0;i<size;++i){
+      long val = data.get(i);
+      writer.add(val);
+    }
+    writer.finish();
+    
   }
   
   @Override
@@ -48,8 +55,36 @@ public class PackedForwardIndex implements ForwardIndex {
   }
 
   @Override
-  public ReaderIterator iterator(DataInput input) throws IOException{
-    //DataInput din = new DirectByteBufferDataInput(input);
-    return PackedInts.getReaderIterator(input, PackedInts.DEFAULT_BUFFER_SIZE);
+  public LongRandomAccessIterator iterator(DataInput input) throws IOException{
+    final Reader reader = load(input);
+    return new LongRandomAccessIterator(){
+
+      int current = 0;
+      @Override
+      public boolean hasNext() throws IOException {
+        return current < reader.size();
+      }
+
+      @Override
+      public long next() throws IOException {
+        return reader.get(current++);
+      }
+
+      @Override
+      public void reset() {
+        current = 0;
+      }
+
+      @Override
+      public long get(int idx) throws IOException {
+        return reader.get(idx);
+      }
+
+      @Override
+      public long numElems() {
+        return reader.size();
+      }
+      
+    };
   }
 }

@@ -5,10 +5,10 @@ import java.util.Random;
 
 import org.apache.lucene.store.DataOutput;
 import org.apache.lucene.util.packed.PackedInts.Reader;
-import org.apache.lucene.util.packed.PackedInts.ReaderIterator;
 
 import com.senseidb.compressor.idset.DirectForwardIndex;
 import com.senseidb.compressor.idset.ForwardIndex;
+import com.senseidb.compressor.idset.IdSet.LongRandomAccessIterator;
 import com.senseidb.compressor.idset.PackedForwardIndex;
 import com.senseidb.compressor.util.CompressorUtil;
 
@@ -85,11 +85,11 @@ public class ForwardIndexPerf {
     System.out.println("iterate in array took: " + (end - start));
     
     offheapMem.rewind();
-    ReaderIterator iter = idx.iterator(CompressorUtil.getDataInput(offheapMem));
+    
+    LongRandomAccessIterator iter = idx.iterator(CompressorUtil.getDataInput(offheapMem));
     
     start = System.currentTimeMillis();
-    int count = iter.size();
-    for (int i=0;i<count;++i){
+    while(iter.hasNext()){
       tmp += iter.next();
     }
     end = System.currentTimeMillis();
@@ -103,8 +103,7 @@ System.out.println("iterate in array took: " + (end - start));
     iter = idx.iterator(CompressorUtil.getDataInput(offheapMem));
     
     start = System.currentTimeMillis();
-    count = iter.size();
-    for (int i=0;i<count;++i){
+    while(iter.hasNext()){
       tmp += iter.next();
     }
     end = System.currentTimeMillis();

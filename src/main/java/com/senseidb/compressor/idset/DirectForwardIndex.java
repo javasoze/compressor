@@ -1,13 +1,12 @@
 package com.senseidb.compressor.idset;
 
 import java.io.IOException;
-import java.nio.LongBuffer;
 
 import org.apache.lucene.store.DataInput;
 import org.apache.lucene.store.DataOutput;
-import org.apache.lucene.util.LongsRef;
 import org.apache.lucene.util.packed.PackedInts.Reader;
-import org.apache.lucene.util.packed.PackedInts.ReaderIterator;
+
+import com.senseidb.compressor.idset.IdSet.LongRandomAccessIterator;
 
 public class DirectForwardIndex implements ForwardIndex {
 
@@ -38,45 +37,37 @@ public class DirectForwardIndex implements ForwardIndex {
   }
 
   @Override
-  public ReaderIterator iterator(DataInput in) throws IOException{
-    long[] arr = readFromDataInput(in);
-    final LongBuffer buf = LongBuffer.wrap(arr);
-    return new ReaderIterator(){
+  public LongRandomAccessIterator iterator(DataInput in) throws IOException{
+    final long[] arr = readFromDataInput(in);
+    return new LongRandomAccessIterator(){
+      int current = 0;
 
       @Override
-      public void close() throws IOException {
-        
+      public boolean hasNext() throws IOException {
+        return current < arr.length;
       }
 
       @Override
       public long next() throws IOException {
-        return buf.get();
+        return arr[current++];
       }
 
       @Override
-      public LongsRef next(int count) throws IOException {
-        int size = Math.min(count, buf.remaining());
+      public void reset() {
+        current = 0;
         
-        long[] retBuf = new long[size];
-        buf.get(retBuf);
-        return new LongsRef(retBuf,0,size);
       }
 
       @Override
-      public int getBitsPerValue() {
-        return 64;
+      public long get(int idx) throws IOException {
+        return arr[idx];
       }
 
       @Override
-      public int size() {
-        return buf.capacity();
+      public long numElems() {
+        return arr.length;
       }
 
-      @Override
-      public int ord() {
-        return buf.position();
-      }
-      
     };
   }
 
@@ -104,13 +95,6 @@ public class DirectForwardIndex implements ForwardIndex {
       }
 
       @Override
-      public int get(int index, long[] target, int off, int len) {
-        int minLen = Math.min(arr.length, len);
-        System.arraycopy(arr, index,target, off, minLen);
-        return minLen;
-      }
-
-      @Override
       public int getBitsPerValue() {
         return 64;
       }
@@ -118,11 +102,6 @@ public class DirectForwardIndex implements ForwardIndex {
       @Override
       public int size() {
         return arr.length;
-      }
-
-      @Override
-      public long ramBytesUsed() {
-        return 8*arr.length;
       }
 
       @Override

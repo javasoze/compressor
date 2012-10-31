@@ -1,41 +1,42 @@
-package org.apache.lucene.util.packed;
+package com.senseidb.compressor.idset;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.LongBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Random;
 
-import com.senseidb.compressor.idset.IdSet;
-import com.senseidb.compressor.idset.LongArrayIdSet;
+import org.apache.lucene.util.packed.PackedInts;
+import org.apache.lucene.util.packed.PackedInts.Mutable;
+
 import com.senseidb.compressor.util.CompressorUtil;
+
 
 public class CompressedIdSet extends IdSet {
   private static class ValSeg {
     long minVal;
-    Packed64 valSet;
+    Mutable valSet;
 
     ValSeg() {
     }
 
     public long sizeInBytes() {
-      return 8 + 4 + valSet.ramBytesUsed();
+      return 8 + 4 + valSet.getBitsPerValue()*valSet.size();
     }
     
     public static void serialize(ValSeg idset,DataOutputStream out) throws IOException{
       out.writeLong(idset.minVal);
-      out.writeInt(idset.valSet.valueCount);
-      out.writeInt(idset.valSet.bitsPerValue);
-      int count = idset.valSet.buffer.capacity();
+      out.writeInt(idset.valSet.size());
+      out.writeInt(idset.valSet.getBitsPerValue());
+      int count = idset.valSet.size();
       out.writeInt(count);
       for (int i=0;i<count;++i){
-        out.writeLong(idset.valSet.buffer.get(i));
+        out.writeLong(idset.valSet.get(i));
       }
     }
     
@@ -45,13 +46,12 @@ public class CompressedIdSet extends IdSet {
       int bitsPerVal = in.readInt();
       int len = in.readInt();
       
-      LongBuffer buffer = LongBuffer.allocate(len);
+      Mutable valSet = PackedInts.getMutable(valCount, bitsPerVal);
       
       for (int i=0;i<len;++i){
-        buffer.put(i,in.readLong());
+        valSet.set(i, in.readLong());
       }
       
-      Packed64 valSet = new Packed64(buffer,valCount,bitsPerVal);
       ValSeg seg = new ValSeg();
       seg.minVal = minVal;
       seg.valSet = valSet;
@@ -246,7 +246,7 @@ public class CompressedIdSet extends IdSet {
     int nBits = CompressorUtil.getNumBits(maxDelta);
     ValSeg seg = new ValSeg();
     seg.minVal = currentSeg[0];
-    seg.valSet = new Packed64(currentSeg.length, nBits);
+    seg.valSet = PackedInts.getMutable(currentSeg.length, nBits);
     for (int i = 0; i < currentSeg.length; ++i) {
       if (i > 0) {
         long val = currentSeg[i] - currentSeg[i - 1];
@@ -265,7 +265,7 @@ public class CompressedIdSet extends IdSet {
   }
 
   public static void main(String[] args) throws Exception {
-    int count = 100 * 1024 * 1024; // 100M longs
+    int count =  1024 * 1024; // 100M longs
     // int maxVal = 1000000;
     Random rand = new Random();
     LongArrayIdSet set2 = new LongArrayIdSet(count);

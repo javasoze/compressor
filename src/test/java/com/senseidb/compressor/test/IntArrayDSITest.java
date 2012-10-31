@@ -9,11 +9,11 @@ import java.util.Random;
 import junit.framework.TestCase;
 
 import org.apache.lucene.search.DocIdSetIterator;
-import org.apache.lucene.util.packed.CompressedIdSet;
 import org.junit.Test;
 
 import com.senseidb.compressor.idset.IdSet;
 import com.senseidb.compressor.idset.IdSet.LongRandomAccessIterator;
+import com.senseidb.compressor.idset.CompressedIdSet;
 import com.senseidb.compressor.idset.IntArrayDocIdSetIterator;
 import com.senseidb.compressor.idset.LongArrayIdSet;
 
