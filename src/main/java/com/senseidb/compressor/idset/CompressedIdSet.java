@@ -5,7 +5,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
 
@@ -14,8 +14,8 @@ import org.apache.lucene.util.packed.PackedInts.Mutable;
 
 import com.senseidb.compressor.util.CompressorUtil;
 
-
 public class CompressedIdSet extends IdSet {
+  
   private static class ValSeg {
     long minVal;
     Mutable valSet;
@@ -67,19 +67,40 @@ public class CompressedIdSet extends IdSet {
 
     private final long[] currentSeg;
     private final int currentCount;
-    private final ArrayList<ValSeg> segList;
+    private final ValSeg[] segList;
+    private final long[] minVals;
     private final int size;
     
     private int tmpSegIdx = -1;
     private long[] tmpSeg = null;
-
+    
     CompressedLongIterator(long[] currentSeg, int currentCount,
         LinkedList<ValSeg> segList, int size) {
       this.currentCount = currentCount;
       this.currentSeg = currentSeg;
-      this.segList = new ArrayList<ValSeg>(segList);
+      this.segList = segList.toArray(new ValSeg[0]);
       this.size = size;
+      this.minVals = new long[this.segList.length];
+      for (int i = 0;i < minVals.length; ++i){
+        this.minVals[i] = this.segList[i].minVal;
+      }
       reset();
+    }
+    
+    public boolean contains(long val){
+      int idx = Arrays.binarySearch(this.minVals, val);
+      if (idx<0){
+        idx = -idx;
+      }
+      ValSeg seg = segList[idx];
+      for (int i=0;i<seg.valSet.size();++i){
+        long v = seg.valSet.get(i);
+        if (v == val){
+          return true;
+        }
+        if (v > val) break;
+      }
+      return false;
     }
 
     @Override
@@ -88,13 +109,13 @@ public class CompressedIdSet extends IdSet {
       int i = idx / currentSeg.length;
       int m = idx % currentSeg.length;
 
-      if (i >= segList.size()) {
+      if (i >= segList.length) {
         // last block
         return currentSeg[m];
       } else {
         if (tmpSegIdx != i || tmpSeg==null){
           tmpSegIdx = i;
-          ValSeg seg = this.segList.get(i);
+          ValSeg seg = this.segList[i];
           tmpSeg = new long[seg.valSet.size()];
           tmpSeg[0] = seg.minVal;
           for (int k=1;k<tmpSeg.length;++k){
@@ -143,7 +164,7 @@ public class CompressedIdSet extends IdSet {
 
     @Override
     public void reset() {
-      iter = segList.iterator();
+      iter = CompressorUtil.iterator(segList);
       readCursor = 0;
       if (iter.hasNext()) {
         cs = iter.next();

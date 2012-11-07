@@ -12,6 +12,8 @@ public abstract class IdSet {
     void reset();
 
     long get(int idx) throws IOException;
+    
+    boolean contains(long val);
 
     long numElems();
   }

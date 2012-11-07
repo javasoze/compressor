@@ -118,7 +118,6 @@ public class IntArrayDSITest {
     long[] longarr = new long[num];
     Random rand = new Random();
     for (int i = 0; i < num; ++i) {
-
       long n = Math.abs(rand.nextInt(maxVal));
       longarr[i] = n;
     }

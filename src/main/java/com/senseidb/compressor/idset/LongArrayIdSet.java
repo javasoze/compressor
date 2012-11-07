@@ -45,6 +45,14 @@ public class LongArrayIdSet extends IdSet {
       return currentSize;
     }
 
+    @Override
+    public boolean contains(long val) {
+      for (long v : array){
+        if (v == val) return true;
+      }
+      return false;
+    }
+
   }
 
   int currentIdx = 0;

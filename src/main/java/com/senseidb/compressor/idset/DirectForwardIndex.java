@@ -68,6 +68,14 @@ public class DirectForwardIndex implements ForwardIndex {
         return arr.length;
       }
 
+      @Override
+      public boolean contains(long val) {
+        for (long v : arr){
+          if (v == val) return true;
+        }
+        return false;
+      }
+
     };
   }
 

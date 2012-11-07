@@ -84,6 +84,16 @@ public class PackedForwardIndex implements ForwardIndex {
       public long numElems() {
         return reader.size();
       }
+
+      @Override
+      public boolean contains(long val) {
+        int count = reader.size();
+        for (int i=0;i<count;++i){
+          long v = reader.get(i);
+          if (v == val) return true;
+        }
+        return false;
+      }
       
     };
   }

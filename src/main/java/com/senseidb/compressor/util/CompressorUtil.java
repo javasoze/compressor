@@ -2,6 +2,7 @@ package com.senseidb.compressor.util;
 
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
+import java.util.Iterator;
 
 import org.apache.lucene.store.DataInput;
 import org.apache.lucene.store.DataOutput;
@@ -39,6 +40,27 @@ public class CompressorUtil {
     else{
       return new InputStreamDataInput(new ByteBufferInputStream(buffer));
     }
+  }
+  
+  public static <T> Iterator<T> iterator(final T[] arr){
+    return new Iterator<T>(){
+      int count = 0;
+      @Override
+      public boolean hasNext() {
+        return count < arr.length;
+      }
+
+      @Override
+      public T next() {
+        return arr[count++];
+      }
+
+      @Override
+      public void remove() {
+        throw new UnsupportedOperationException("remove not supported");
+      }
+      
+    };
   }
   
   public static void main(String[] args) {
