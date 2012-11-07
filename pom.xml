@@ -6,7 +6,7 @@
 	<artifactId>compressor</artifactId>
 	<packaging>jar</packaging>
 	<name>compressor</name>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.3.5</version>
 	<description>fast compression library</description>
 
 	<!-- Set the compiler to java6 -->
