@@ -17,7 +17,7 @@ public class PackedForwardIndex implements ForwardIndex {
   private Mutable data;
   public PackedForwardIndex(int numDocs, int numTerms){
     int bitsPerVal = CompressorUtil.getNumBits(numTerms);
-    data = PackedInts.getMutable(numDocs, bitsPerVal);
+    data = PackedInts.getMutable(numDocs, bitsPerVal,PackedInts.DEFAULT);
   }
   
   @Override
@@ -38,7 +38,7 @@ public class PackedForwardIndex implements ForwardIndex {
   @Override
   public void save(DataOutput out) throws IOException{
     int size = data.size();
-    Writer writer = PackedInts.getWriter(out, data.size(), data.getBitsPerValue());
+    Writer writer = PackedInts.getWriter(out, data.size(), data.getBitsPerValue(),PackedInts.DEFAULT);
     for (int i=0;i<size;++i){
       long val = data.get(i);
       writer.add(val);

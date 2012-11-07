@@ -113,6 +113,18 @@ public class DirectForwardIndex implements ForwardIndex {
       public boolean hasArray() {
         return true;
       }
+
+      @Override
+      public int get(int index, long[] target, int offset, int len) {
+        int count = Math.min(len, arr.length-index);
+        System.arraycopy(arr, index, target, offset, count);
+        return count;
+      }
+
+      @Override
+      public long ramBytesUsed() {
+        return sizeInBytes();
+      }
       
     };
   }

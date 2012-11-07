@@ -46,7 +46,7 @@ public class CompressedIdSet extends IdSet {
       int bitsPerVal = in.readInt();
       int len = in.readInt();
       
-      Mutable valSet = PackedInts.getMutable(valCount, bitsPerVal);
+      Mutable valSet = PackedInts.getMutable(valCount, bitsPerVal,PackedInts.DEFAULT);
       
       for (int i=0;i<len;++i){
         valSet.set(i, in.readLong());
@@ -246,7 +246,7 @@ public class CompressedIdSet extends IdSet {
     int nBits = CompressorUtil.getNumBits(maxDelta);
     ValSeg seg = new ValSeg();
     seg.minVal = currentSeg[0];
-    seg.valSet = PackedInts.getMutable(currentSeg.length, nBits);
+    seg.valSet = PackedInts.getMutable(currentSeg.length, nBits, PackedInts.DEFAULT);
     for (int i = 0; i < currentSeg.length; ++i) {
       if (i > 0) {
         long val = currentSeg[i] - currentSeg[i - 1];
