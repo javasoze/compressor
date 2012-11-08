@@ -2,6 +2,11 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
+	<parent>
+	    <groupId>org.sonatype.oss</groupId>
+	    <artifactId>oss-parent</artifactId>
+	    <version>6</version>
+	</parent>
 	<groupId>com.senseidb</groupId>
 	<artifactId>compressor</artifactId>
 	<packaging>jar</packaging>
@@ -9,6 +14,30 @@
 	<version>0.3.5</version>
 	<description>fast compression library</description>
 
+	<url>http://github.com/javasoze/compressor</url>
+
+	  <licenses>
+	    <license>
+	      <name>Apache License, Version 2.0</name>
+	      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+	      <distribution>repo</distribution>
+	    </license>
+	  </licenses>
+
+	  <scm>
+	    <connection>scm:git://github.com/javasoze/compressor.git</connection>
+	    <developerConnection>scm:git@github.com:javasoze/compressor.git</developerConnection>
+	    <url>http://github.com/javasoze/compressor</url>
+	  </scm>
+	
+	<developers>
+	  <developer>
+	    <id>javasoze</id>
+	    <name>John Wang</name>
+	    <email>john.wang@gmail.com</email>
+	  </developer>
+	</developers>
+	
 	<!-- Set the compiler to java6 -->
 	<build>
 		<plugins>
@@ -63,6 +92,36 @@
           <name>sonatype nexus snapshots repository</name>
           <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
         </snapshotRepository>
- </distributionManagement>
+    </distributionManagement>
+
+    <profiles>
+        <profile>
+           <id>release-sign-artifacts</id>
+             <activation>
+               <property>
+                  <name>performRelease</name>
+                  <value>true</value>
+               </property>
+            </activation>
+            <build>
+                            <plugins>
+                                <plugin>
+                                    <groupId>org.apache.maven.plugins</groupId>
+                                    <artifactId>maven-gpg-plugin</artifactId>
+                                    <version>1.1</version>
+                                    <executions>
+                                        <execution>
+                                            <id>sign-artifacts</id>
+                                            <phase>verify</phase>
+                                            <goals>
+                                                <goal>sign</goal>
+                                            </goals>
+                                        </execution>
+                                    </executions>
+                                </plugin>
+                            </plugins>
+                        </build>
+                    </profile>
+                </profiles>
 </project>
 
